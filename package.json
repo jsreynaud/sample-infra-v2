@@ -4,18 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-      "test": "echo \"Test target\"",
-      "server": "node bin/server.js",
-      "curl": "curl -d '{\"username\":\"test\",\"password\":\"pass\"}' http://localhost:8000/login",
-      "client": "node bin/client.js",
-      "rabbitmq_docker": "docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management",
-      "rabbitmq_receiver": "node bin/receiver.js",
-      "rabbitmq_sender": "node bin/sender.js"
+    "test": "echo \"Test target\"",
+    "server": "node bin/server.js",
+    "curl": "curl -d '{\"username\":\"test\",\"password\":\"pass\"}' http://localhost:8000/login",
+    "client": "node bin/client.js",
+    "rabbitmq_docker": "docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management",
+    "rabbitmq_receiver": "node bin/receiver.js",
+    "rabbitmq_sender": "node bin/sender.js"
   },
   "author": "",
   "license": "GPLv3",
   "dependencies": {
     "amqplib": "^0.7.1",
+    "argparse": "^2.0.1",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",

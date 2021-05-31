@@ -1,17 +1,41 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-const schemas = require("./schemas");
+const schemas = require("../schemas");
+const authdb = require("../db/authdb");
+
+var amqp = require('amqplib/callback_api');
 var validate = require('jsonschema').validate;
 
 const app = express();
 const host = 'localhost'; // Utiliser 0.0.0.0 pour être visible depuis l'exterieur de la machine
 const port = 8000;
+const queue = 'from_backend';
 
 const ACCESS_TOKEN_SECRET = "123456789";
 const ACCESS_TOKEN_LIFE = 120;
 
+var from_backend_channel;
 
+function push_to_queue(data,decoded_jwt) {
+    let d = data;
+    d.jwt = decoded_jwt;
+    from_backend_channel.sendToQueue(queue, Buffer.from(JSON.stringify(d)));
+    console.log(" [x] Sent %s", d);
+}
+
+function check_password(login,password) {
+    // Check password against authdb
+    let fnd = authdb.authdb.find(element => {
+            return element.login == login && element.password == password;
+        });
+
+    if (fnd) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 function login(data,res) {
     console.log("login");
@@ -20,7 +44,7 @@ function login(data,res) {
     let validation = validate(data,schemas.login_schema);
     // Check result is valid
     if (validation.valid) {
-        if (data.username == "test" && data.password == "pass") {
+        if (check_password(data.username, data.password)) {
             let j = jwt.sign({"username":data.username}, ACCESS_TOKEN_SECRET, {
                 algorithm: "HS512",
                 expiresIn: ACCESS_TOKEN_LIFE
@@ -56,8 +80,10 @@ function postdata(data,res) {
                     res.end(JSON.stringify({"error":-1,"message":"JWT error"}));
                 } else {
                     // Ok no problem: Adding data
+                    push_to_queue(data,decoded);
                     res.writeHead(201, {'Content-Type': 'application/json'});
                     res.end(JSON.stringify({"error":0,"message":"data added"}));
+
                 }
             });
     } else {
@@ -115,39 +141,57 @@ function f404(data,res) {
 
 
 function run() {
+    const IP = process.env.IP || "127.0.0.1";
+    const username = process.env.user || 'guest';
+    const password = process.env.password || 'guest';
+    const opt = { credentials: require('amqplib').credentials.plain(username, password) };
 
-    app.use(bodyParser.json());
+    amqp.connect('amqp://'+IP, opt, function(error0, connection) {
+            if (error0) {
+                throw error0;
+            }
+            connection.createChannel(function(error1, channel) {
+                    if (error1) {
+                        throw error1;
+                    }
+                    channel.assertQueue(queue, {
+                        durable: true
+                                });
+                    from_backend_channel = channel;
+                    app.use(bodyParser.json());
 
-    app.post('/pushdata', (req, res) => {
-        var body = req.body;
-        console.log(body);
-        postdata(body,res);
-    });
+                    app.post('/pushdata', (req, res) => {
+                        var body = req.body;
+                        console.log(body);
+                        postdata(body,res);
+                    });
 
-    app.post('/pull', (req, res) => {
-        var body = req.body;
-        console.log(body);
-        pull(body,res);
-    });
+                    app.post('/pull', (req, res) => {
+                        var body = req.body;
+                        console.log(body);
+                        pull(body,res);
+                    });
 
-    app.post("/login", (req, res) => {
-        var body = req.body;
-        console.log(body);
-        login(body,res);
-    });
+                    app.post("/login", (req, res) => {
+                        var body = req.body;
+                        console.log(body);
+                        login(body,res);
+                    });
 
-    app.get('/*', (req, res) => {
-        console.log("GET 404", req.originalUrl);
-        f404(null,res);
-    });
-    app.post('/*', (req, res) => {
-        console.log("POST 404",req.originalUrl);
-        f404(null,res);
-    });
+                    app.get('/*', (req, res) => {
+                        console.log("GET 404", req.originalUrl);
+                        f404(null,res);
+                    });
+                    app.post('/*', (req, res) => {
+                        console.log("POST 404",req.originalUrl);
+                        f404(null,res);
+                    });
 
-    app.listen(port, host, () => {
-        console.log(`Server is running at http://${host}:${port}`);
-    });
+                    app.listen(port, host, () => {
+                        console.log(`Server is running at http://${host}:${port}`);
+                    });
+                });
+            });
 }
 
 

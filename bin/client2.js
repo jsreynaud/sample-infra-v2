@@ -1,14 +1,16 @@
 // Implementation with axios
 const axios = require('axios');
+const { ArgumentParser } = require('argparse');
+const parser = new ArgumentParser({
+  description: 'Client parameters'
+});
 
-// Setting default value
-let login = "test";
-let password = "pass";
-// If some parameters are there, use them...
-if (process.argv.length > 3) {
-    login = process.argv[2];
-    password = process.argv[3];
-}
+parser.add_argument('-l', '--login', { help: 'Login to use',required:true });
+parser.add_argument('-p', '--password', { help: 'Password',required:true });
+parser.add_argument('-t', '--to', { help: 'Destination',type:"int" ,required:true});
+let login = parser.parse_args().login;
+let password = parser.parse_args().password;
+let destination = parser.parse_args().to;
 
 
 
@@ -40,7 +42,8 @@ var iter_data = 0;
 function action(jwt) {
     iter_data++;
     axios.post("http://localhost:8000/pushdata",{jwt:jwt,
-                                                 data:{complexdata:'ok',withnumber:iter_data}})
+                                                 data:{complexdata:'ok',withnumber:iter_data},
+                                                 destination:destination})
         .then(function(d) {
             axios.post("http://localhost:8000/pull",
                        {jwt:jwt})
@@ -63,7 +66,7 @@ axios.post("http://localhost:8000/login",{username: login,
               setInterval(() => {
                   action(jwt);
               },
-                          30000);
+                          300);
           }).catch(function (error) {
               // handle error
               console.log("LOGIN ERROR",error);

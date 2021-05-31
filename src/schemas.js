@@ -27,6 +27,9 @@ const postdata_schema = {
             "type": "string"
         },
         "data" : {
+        },
+        "destination": {
+            "type": "integer"
         }
     },
     "required": ["jwt", "data"],
