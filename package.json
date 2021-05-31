@@ -10,7 +10,9 @@
     "client": "node bin/client.js",
     "rabbitmq_docker": "docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management",
     "rabbitmq_receiver": "node bin/receiver.js",
-    "rabbitmq_sender": "node bin/sender.js"
+    "rabbitmq_sender": "node bin/sender.js",
+    "redis_docker": "docker run -i --rm --name redis -p 6379:6379 redis",
+    "redis_tester": "node bin/redis.js"
   },
   "author": "",
   "license": "GPLv3",
@@ -22,6 +24,7 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "jsonschema": "^1.4.0",
-    "jsonwebtoken": "^8.5.1"
+    "jsonwebtoken": "^8.5.1",
+    "redis": "^3.1.2"
   }
 }
